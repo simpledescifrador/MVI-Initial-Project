@@ -1,11 +1,17 @@
 package com.esys.mviinitialproject.util
 
+import android.R
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.os.Environment
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import com.karumi.dexter.Dexter
+import com.karumi.dexter.listener.single.CompositePermissionListener
+import com.karumi.dexter.listener.single.DialogOnDeniedPermissionListener
+import com.karumi.dexter.listener.single.PermissionListener
+import com.karumi.dexter.listener.single.SnackbarOnDeniedPermissionListener
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -84,6 +90,20 @@ class AppUtils {
         }
 
         fun appendLog(context: Context, text: String?, logType: LogType) {
+            val dialogPermissionListener: PermissionListener =
+                DialogOnDeniedPermissionListener.Builder
+                    .withContext(context)
+                    .withTitle("Write Storage Permission")
+                    .withMessage("Write Storage Permission is needed insert app logs")
+                    .withButtonText(R.string.ok)
+                    .build()
+
+
+            Dexter.withContext(context)
+                .withPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                .withListener(CompositePermissionListener(dialogPermissionListener))
+                .check()
+
             val pathDir = Environment.getExternalStorageDirectory()
             val applicationInfo = context.applicationInfo
             val stringId = applicationInfo.labelRes
@@ -91,7 +111,8 @@ class AppUtils {
                 if (stringId == 0) applicationInfo.nonLocalizedLabel.toString() else context.getString(
                     stringId
                 )
-            val logFile = File(pathDir.path, "/${applicationName}.log"
+            val logFile = File(
+                pathDir.path, "/${applicationName}.log"
             )
             if (!logFile.exists()) {
                 try {

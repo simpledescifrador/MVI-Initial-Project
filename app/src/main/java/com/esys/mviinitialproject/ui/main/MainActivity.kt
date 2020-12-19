@@ -3,6 +3,9 @@ package com.esys.mviinitialproject.ui.main
 import android.os.Bundle
 import androidx.lifecycle.ViewModelProviders
 import androidx.lifecycle.lifecycleScope
+import com.esys.mviinitialproject.data.local.database.DbHelperImp
+import com.esys.mviinitialproject.data.local.preference.CommonPreference
+import com.esys.mviinitialproject.data.local.preference.PreferenceHelperImpl
 import com.esys.mviinitialproject.data.network.api.ApiHelperImpl
 import com.esys.mviinitialproject.data.network.api.RetrofitBuilder
 import com.esys.mviinitialproject.databinding.ActivityMainBinding
@@ -26,7 +29,10 @@ class MainActivity : BaseActivity<MainViewModel>() {
     override fun setupUI() {
     }
 
+
     override fun setupClicks() {
+        lifecycleScope.launch {
+        }
     }
 
     override fun observeViewModel() {
@@ -50,6 +56,10 @@ class MainActivity : BaseActivity<MainViewModel>() {
 
     override fun setupViewModel(): MainViewModel = ViewModelProviders.of(
         this,
-        MainViewModel.ViewModelFactory(ApiHelperImpl(RetrofitBuilder.apiService))
+        MainViewModel.ViewModelFactory(
+            ApiHelperImpl(RetrofitBuilder.apiService),
+            PreferenceHelperImpl(CommonPreference(this)),
+            DbHelperImp(this)
+        )
     ).get(MainViewModel::class.java)
 }
