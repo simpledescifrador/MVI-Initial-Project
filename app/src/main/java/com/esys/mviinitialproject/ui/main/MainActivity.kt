@@ -3,7 +3,7 @@ package com.esys.mviinitialproject.ui.main
 import android.os.Bundle
 import androidx.lifecycle.ViewModelProviders
 import androidx.lifecycle.lifecycleScope
-import com.esys.mviinitialproject.data.local.database.DbHelperImp
+import com.esys.mviinitialproject.data.local.database.DbHelperImpl
 import com.esys.mviinitialproject.data.local.preference.CommonPreference
 import com.esys.mviinitialproject.data.local.preference.PreferenceHelperImpl
 import com.esys.mviinitialproject.data.network.api.ApiHelperImpl
@@ -11,9 +11,9 @@ import com.esys.mviinitialproject.data.network.api.RetrofitBuilder
 import com.esys.mviinitialproject.databinding.ActivityMainBinding
 import com.esys.mviinitialproject.ui.base.BaseActivity
 import com.esys.mviinitialproject.util.AppUtils
+import com.esys.mviinitialproject.util.ViewModelFactory
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 
 @ExperimentalCoroutinesApi
 class MainActivity : BaseActivity<MainViewModel>() {
@@ -31,12 +31,12 @@ class MainActivity : BaseActivity<MainViewModel>() {
 
 
     override fun setupClicks() {
-        lifecycleScope.launch {
+        lifecycleScope.launchWhenCreated {
         }
     }
 
     override fun observeViewModel() {
-        lifecycleScope.launch {
+        lifecycleScope.launchWhenCreated {
             viewModel.mainState.collect {
                 when (it) {
                     is MainViewModel.MainState.Idle -> {
@@ -56,10 +56,10 @@ class MainActivity : BaseActivity<MainViewModel>() {
 
     override fun setupViewModel(): MainViewModel = ViewModelProviders.of(
         this,
-        MainViewModel.ViewModelFactory(
+        ViewModelFactory(
             ApiHelperImpl(RetrofitBuilder.apiService),
             PreferenceHelperImpl(CommonPreference(this)),
-            DbHelperImp(this)
+            DbHelperImpl(this)
         )
     ).get(MainViewModel::class.java)
 }

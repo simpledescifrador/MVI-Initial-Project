@@ -1,10 +1,8 @@
 package com.esys.mviinitialproject.ui.main
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.esys.mviinitialproject.data.local.database.DbHelper
-import com.esys.mviinitialproject.data.local.preference.PreferenceHelper
-import com.esys.mviinitialproject.data.network.api.ApiHelper
+import androidx.lifecycle.viewModelScope
+import com.esys.mviinitialproject.data.model.User
+import com.esys.mviinitialproject.data.network.api.ResultWrapper
 import com.esys.mviinitialproject.data.repository.MainRepository
 import com.esys.mviinitialproject.ui.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -17,32 +15,22 @@ import kotlinx.coroutines.launch
 
 @ExperimentalCoroutinesApi
 class MainViewModel(private val repository: MainRepository) : BaseViewModel() {
-    class ViewModelFactory(
-        private val apiHelper: ApiHelper,
-        private val preferenceHelper: PreferenceHelper,
-        private val dbHelper: DbHelper
-    ) : ViewModelProvider.Factory {
-
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-                return MainViewModel(MainRepository(apiHelper, preferenceHelper, dbHelper)) as T
-            }
-            throw IllegalArgumentException("Unknown class name")
-        }
-
-    }
-
     val mainIntent = Channel<MainIntent>(Channel.UNLIMITED)
     private val _mainState = MutableStateFlow<MainState>(MainState.Idle)
     val mainState: StateFlow<MainState>
         get() = _mainState
 
     sealed class MainIntent {
+        object FetchUsers : MainIntent()
+        data class GetUserDetails(val userId: Int) : MainIntent()
     }
 
     sealed class MainState {
         object Idle : MainState()
         object Loading : MainState()
+        object NoNetworkAvailableError : MainState()
+        data class LoadUsers(val users: List<User>) : MainState()
+        data class LoadUserDetails(val user: User) : MainState()
         data class Error(val error: String?) : MainState()
     }
 
@@ -53,6 +41,44 @@ class MainViewModel(private val repository: MainRepository) : BaseViewModel() {
     private fun handleIntent() {
         viewModelScope.launch {
             mainIntent.consumeAsFlow().collect {
+                when (it) {
+                    is MainIntent.FetchUsers -> fetchUsers()
+                    is MainIntent.GetUserDetails -> loadUserDetails(it.userId)
+                }
+            }
+        }
+    }
+
+    private fun loadUserDetails(userId: Int) {
+        viewModelScope.launch {
+            _mainState.value = MainState.Loading
+            when (val result = repository.getUserDetail(userId)) {
+                is ResultWrapper.Success -> {
+                    _mainState.value = MainState.LoadUserDetails(result.data)
+                }
+                is ResultWrapper.Error -> {
+                    _mainState.value = MainState.Error(result.exception?.message)
+                }
+                is ResultWrapper.NetworkError -> {
+                    _mainState.value = MainState.NoNetworkAvailableError
+                }
+            }
+        }
+    }
+
+    private fun fetchUsers() {
+        viewModelScope.launch {
+            _mainState.value = MainState.Loading
+            when (val result = repository.getUsers()) {
+                is ResultWrapper.Success -> {
+                    _mainState.value = MainState.LoadUsers(result.data)
+                }
+                is ResultWrapper.Error -> {
+                    _mainState.value = MainState.Error(result.exception?.message)
+                }
+                is ResultWrapper.NetworkError -> {
+                    _mainState.value = MainState.NoNetworkAvailableError
+                }
             }
         }
     }
