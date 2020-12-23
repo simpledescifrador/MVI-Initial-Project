@@ -90,5 +90,4 @@ dependencies {
     // Dependencies for local unit tests
     testImplementation "org.mockito:mockito-core:$mockito_version"
     testImplementation "org.mockito:mockito-inline:$mockito_version"
-    testImplementation "com.google.truth:truth:1.1"
 }

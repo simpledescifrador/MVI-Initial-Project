@@ -1,7 +1,6 @@
 package com.esys.mviinitialproject
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.asLiveData
 import com.esys.mviinitialproject.data.local.database.DbHelper
@@ -15,6 +14,7 @@ import com.esys.mviinitialproject.ui.main.MainViewModel.MainIntent
 import com.esys.mviinitialproject.ui.main.MainViewModel.MainState
 import com.esys.mviinitialproject.util.MainCoroutineScopeRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
@@ -27,9 +27,6 @@ import org.mockito.Captor
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.MockitoJUnitRunner
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 @ExperimentalCoroutinesApi
 @RunWith(MockitoJUnitRunner::class)
@@ -41,47 +38,101 @@ class MainViewModelTest {
     val coroutineScopeRule = MainCoroutineScopeRule()
 
     @Mock
-    lateinit var apiHelper: ApiHelper
-
-    @Mock
-    lateinit var dbHelper: DbHelper
-
-    @Mock
-    lateinit var preferenceHelper: PreferenceHelper
-
-    @Mock
     lateinit var observer: Observer<MainState>
 
     @Captor
     private lateinit var captor: ArgumentCaptor<MainState>
 
+    @Mock
+    private lateinit var mainRepository: MainRepository
 
     @Test
-    fun getUserDetails_whenGettingFromNetwork_shouldReturnSuccess() = runBlockingTest {
-        val user = User(1, "Ed", "ed@email.com", "http://test.jpg")
-        val viewModel = MainViewModel(MainRepository(apiHelper, preferenceHelper, dbHelper))
-        viewModel.mainState.asLiveData().observeForever(observer)
-        `when`(apiHelper.getUserDetail(user.id)).thenReturn(ResultWrapper.Success(user))
-        viewModel.mainIntent.send(MainIntent.GetUserDetails(user.id))
-        verify(observer, times(3)).onChanged(captor.capture())
-        val values: MutableList<MainState> = captor.allValues
-        assertEquals(MainState.Idle, values[0])
-        assertEquals(MainState.Loading, values[1])
-        assertEquals(MainState.LoadUserDetails(user), values[2])
+    fun fetchUserDetails_whenGettingFromNetwork_shouldReturnSuccess() {
+        //Arrange
+        val expectedUser = User(1, "TEST", "test@test.com", "test.jpg")
+        val expectedReturn = ResultWrapper.Success(expectedUser)
+        val expectedNumberOfInvocation = 3
+        val viewModel = MainViewModel(mainRepository)
+
+        //Act
+        runBlockingTest {
+            `when`(mainRepository.getUserDetail(expectedUser.id)).thenReturn(expectedReturn)
+            viewModel.mainState.asLiveData().observeForever(observer)
+            viewModel.mainIntent.send(MainIntent.GetUserDetails(expectedUser.id))
+        }
+
+        //Assert
+        verify(observer, times(expectedNumberOfInvocation)).onChanged(captor.capture())
+        captor.allValues.run {
+            assertEquals(MainState.Idle, this@run[0])
+            assertEquals(MainState.Loading, this@run[1])
+            assertEquals(MainState.LoadUserDetails(expectedUser), this@run[2])
+        }
     }
 
     @Test
-    fun getUsers_whenFetchingFromNetwork_shouldReturnSuccess() = runBlockingTest {
+    fun fetchUsers_whenFetchingFromNetwork_shouldReturnSuccess() {
+        //Arrange
         val expectedResult = emptyList<User>()
-        val viewModel = MainViewModel(MainRepository(apiHelper, preferenceHelper, dbHelper))
-        viewModel.mainState.asLiveData().observeForever(observer)
-        `when`(apiHelper.getUsers()).thenReturn(ResultWrapper.Success(expectedResult))
-        viewModel.mainIntent.send(MainIntent.FetchUsers)
-        delay(5000)
+        val expectedReturn = ResultWrapper.Success(expectedResult)
+        val expectedNumberOfInvocation = 3
+        val viewModel = MainViewModel(mainRepository)
+
+        //Act
+        runBlockingTest {
+            `when`(mainRepository.getUsers()).thenReturn(expectedReturn)
+            viewModel.mainState.asLiveData().observeForever(observer)
+            viewModel.mainIntent.send(MainIntent.FetchUsers)
+        }
+
+        //Assert
+        verify(observer, times(expectedNumberOfInvocation)).onChanged(captor.capture())
+        captor.allValues.run {
+            assertEquals(MainState.Idle, this@run[0])
+            assertEquals(MainState.Loading, this@run[1])
+            assertEquals(MainState.LoadUsers(expectedResult), this@run[2])
+        }
+    }
+    @Test
+    fun fetchUsers_whenGettingFromNetwork_shouldReturnNetworkError() {
+        //Arrange
+        val expectedReturn = ResultWrapper.NetworkError
+        val viewModel = MainViewModel(mainRepository)
+
+        //Act
+        runBlockingTest {
+            `when`(mainRepository.getUsers()).thenReturn(expectedReturn)
+            viewModel.mainState.asLiveData().observeForever(observer)
+            viewModel.mainIntent.send(MainIntent.FetchUsers)
+        }
+
+        //Assert
         verify(observer, times(3)).onChanged(captor.capture())
-        val values: MutableList<MainState> = captor.allValues
-        assertEquals(MainState.Idle, values[0])
-        assertEquals(MainState.Loading, values[1])
-        assertEquals(MainState.LoadUsers(expectedResult), values[2])
+        captor.allValues.run {
+            assertEquals(MainState.Idle, this@run[0])
+            assertEquals(MainState.Loading, this@run[1])
+            assertEquals(MainState.NoNetworkAvailableError, this@run[2])
+        }
+    }
+    @Test
+    fun fetchUserDetails_whenGettingFromNetwork_shouldReturnNetworkError() {
+        //Arrange
+        val expectedReturn = ResultWrapper.NetworkError
+        val viewModel = MainViewModel(mainRepository)
+
+        //Act
+        runBlockingTest {
+            `when`(mainRepository.getUserDetail(anyInt())).thenReturn(expectedReturn)
+            viewModel.mainState.asLiveData().observeForever(observer)
+            viewModel.mainIntent.send(MainIntent.GetUserDetails(anyInt()))
+        }
+
+        //Assert
+        verify(observer, times(3)).onChanged(captor.capture())
+        captor.allValues.run {
+            assertEquals(MainState.Idle, this@run[0])
+            assertEquals(MainState.Loading, this@run[1])
+            assertEquals(MainState.NoNetworkAvailableError, this@run[2])
+        }
     }
 }
