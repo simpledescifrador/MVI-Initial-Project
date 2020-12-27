@@ -7,11 +7,10 @@ object RetrofitBuilder {
 
     private const val BASE_URL = "https://5e510330f2c0d300147c034c.mockapi.io"//TEMP
 
-    private fun getRetrofit() = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .addConverterFactory(MoshiConverterFactory.create())
-        .build()
-
-
-    val apiService: ApiService = getRetrofit().create(ApiService::class.java)
+    val apiService: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(MoshiConverterFactory.create())
+            .build()
+    }
 }
