@@ -3,11 +3,7 @@ package com.esys.mviinitialproject.ui.main
 import android.os.Bundle
 import androidx.lifecycle.ViewModelProviders
 import androidx.lifecycle.lifecycleScope
-import com.esys.mviinitialproject.data.local.database.DbHelperImpl
-import com.esys.mviinitialproject.data.local.preference.CommonPreference
-import com.esys.mviinitialproject.data.local.preference.PreferenceHelperImpl
-import com.esys.mviinitialproject.data.network.api.ApiHelperImpl
-import com.esys.mviinitialproject.data.network.api.RetrofitBuilder
+import com.esys.mviinitialproject.MainApplication
 import com.esys.mviinitialproject.databinding.ActivityMainBinding
 import com.esys.mviinitialproject.ui.base.BaseActivity
 import com.esys.mviinitialproject.util.AppUtils
@@ -54,12 +50,15 @@ class MainActivity : BaseActivity<MainViewModel>() {
     }
 
 
-    override fun setupViewModel(): MainViewModel = ViewModelProviders.of(
-        this,
-        ViewModelFactory(
-            ApiHelperImpl(RetrofitBuilder.apiService),
-            PreferenceHelperImpl(CommonPreference(this)),
-            DbHelperImpl(this)
-        )
-    ).get(MainViewModel::class.java)
+    override fun setupViewModel(): MainViewModel {
+        val app = this.application as MainApplication
+        return ViewModelProviders.of(
+            this,
+            ViewModelFactory(
+                app.apiHelper,
+                app.preferenceHelper,
+                app.dbHelper
+            )
+        ).get(MainViewModel::class.java)
+    }
 }

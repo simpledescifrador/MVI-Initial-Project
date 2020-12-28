@@ -1,16 +1,20 @@
 package com.esys.mviinitialproject.data.network.api
 
+import com.esys.mviinitialproject.util.Constants
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import retrofit2.converter.moshi.MoshiConverterFactory
+import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitBuilder {
-
-    private const val BASE_URL = "https://5e510330f2c0d300147c034c.mockapi.io"//TEMP
-
-    val apiService: Retrofit by lazy {
+    val apiService: ApiService by lazy {
+        val interceptor = HttpLoggingInterceptor()
+        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(MoshiConverterFactory.create())
-            .build()
+            .baseUrl(Constants.BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(client)
+            .build().create(ApiService::class.java)
     }
 }

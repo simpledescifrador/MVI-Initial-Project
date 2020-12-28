@@ -12,6 +12,7 @@ import com.karumi.dexter.listener.single.CompositePermissionListener
 import com.karumi.dexter.listener.single.DialogOnDeniedPermissionListener
 import com.karumi.dexter.listener.single.PermissionListener
 import com.karumi.dexter.listener.single.SnackbarOnDeniedPermissionListener
+import timber.log.Timber
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -118,8 +119,8 @@ class AppUtils {
                 try {
                     logFile.createNewFile()
                 } catch (e: IOException) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace()
+                    Timber.e(e)
                 }
             }
             try {
